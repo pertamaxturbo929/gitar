@@ -55,13 +55,13 @@ function applyLayout() {
 
 /* ---------- Menu utama (cincin dalam) ---------- */
 const MENU = [
-  { id: 'tuner', label: 'Tuner', icon: 'tuner' },
-  { id: 'metronome', label: 'Metronom', icon: 'metro' },
-  { id: 'chords', label: 'Chord', icon: 'chord' },
-  { id: 'prog', label: 'Progresi', icon: 'prog' },
-  { id: 'strum', label: 'Irama', icon: 'strum' },
-  { id: 'drill', label: 'Latihan', icon: 'drill' },
-  { id: 'ear', label: 'Telinga', icon: 'ear' },
+  { id: 'tuner', label: 'Tuner', icon: 'tuner', color: '#2fd6c8' },
+  { id: 'metronome', label: 'Metronom', icon: 'metro', color: '#ff8a3d' },
+  { id: 'chords', label: 'Chord', icon: 'chord', color: '#4f9dff' },
+  { id: 'prog', label: 'Progresi', icon: 'prog', color: '#a98bff' },
+  { id: 'strum', label: 'Irama', icon: 'strum', color: '#ffd23f' },
+  { id: 'drill', label: 'Latihan', icon: 'drill', color: '#ff6fae' },
+  { id: 'ear', label: 'Telinga', icon: 'ear', color: '#b6ef5a' },
 ];
 
 const menuRing = () => new Ring({
@@ -71,8 +71,17 @@ const menuRing = () => new Ring({
     const s = el('g', { class: 'icon', transform: 'translate(-13 -13) scale(1.08)' }, g);
     s.innerHTML = ICONS[item.icon];
   },
+  onChange(i, item) { setAccent(item); },
   onSettle(i, item) { if (item.id !== state.mode) setMode(item.id); },
 });
+
+// Warna tema ikut menu: berubah halus saat cincin menu diputar.
+function setAccent(item) {
+  if (!item || !item.color) return;
+  document.documentElement.style.setProperty('--accent', item.color);
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.setAttribute('content', '#151619');
+}
 
 const textRender = (size) => (g, item) => {
   const t = el('text', { class: 'ring-label', 'font-size': size }, g);
@@ -99,6 +108,7 @@ let cleanup = () => {};
 function setMode(mode) {
   cleanup(); cleanup = () => {};
   state.mode = mode; save();
+  setAccent(MENU.find((m) => m.id === mode));
   const modes = { chords: chordMode, tuner: tunerMode, metronome: metroMode };
   const extra = { prog: progressionMode, strum: rhythmMode, drill: drillMode, ear: earMode };
   if (extra[mode]) { cleanup = extra[mode](ui) || (() => {}); return; }

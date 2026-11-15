@@ -1,3 +1,4 @@
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #4f9dff; }
 @font-face { font-family: 'Barlow Condensed'; font-weight: 500; font-display: swap; src: url(../fonts/barlow-condensed-500.woff2) format('woff2'); }
 @font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-display: swap; src: url(../fonts/barlow-condensed-600.woff2) format('woff2'); }
 @font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-display: swap; src: url(../fonts/barlow-condensed-700.woff2) format('woff2'); }
@@ -13,8 +14,9 @@
   --text: #e3e5ea;
   --muted: #7c818b;
   --dim: #4a4e56;
-  --accent: #2ea6de;
-  --accent-soft: rgba(46, 166, 222, 0.16);
+  --accent: #4f9dff;
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
+  --ink: #15161a;
   --ok: #35c46b;
   --warn: #e8b13a;
   --bad: #e25b54;
@@ -60,7 +62,7 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .icon .fill { fill: var(--muted); stroke: none; }
 .ring-item.on .icon { stroke: var(--accent); }
 .ring-item.on .icon .fill { fill: var(--accent); }
-.axis-line { stroke: rgba(46, 166, 222, .22); stroke-width: 1; }
+.axis-line { stroke: color-mix(in srgb, var(--accent) 30%, transparent); stroke-width: 1; }
 .axis-mark { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
 
 /* skala tuner & metronom */
@@ -298,3 +300,76 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .pm-n { display: none; }
 .narrow .pm-n { display: grid; }
 .narrow .hand { display: none; }
+
+
+/* ================= Tema "fun": warna per menu, sudut bulat, gerak memantul ================= */
+:root { transition: --accent .45s ease; }
+.stage {
+  background:
+    radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 55%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 45%),
+    linear-gradient(90deg, #17181c, #131418);
+}
+.ring-band { fill: color-mix(in srgb, var(--accent) 5%, #1f2024); }
+.ring:nth-child(2) .ring-band { fill: color-mix(in srgb, var(--accent) 8%, #1a1b1f); }
+.ring:nth-child(3) .ring-band { fill: color-mix(in srgb, var(--accent) 4%, #222328); }
+.ring:nth-child(4) .ring-band { fill: color-mix(in srgb, var(--accent) 9%, #1c1d21); }
+.ring-item.on .ring-sector { fill: var(--accent); }
+.ring-item.on .ring-label { fill: var(--ink); }
+.ring-item.on .icon { stroke: var(--ink); }
+.ring-item.on .icon .fill { fill: var(--ink); }
+.ring-item.on .tick { stroke: var(--accent); }
+.ring-item.on .tick-label { fill: var(--accent); }
+.axis-mark { stroke: var(--accent); stroke-width: 6; }
+.ring-menu .ring-item .icon { stroke: color-mix(in srgb, var(--text) 70%, transparent); }
+
+.info { border-left: 0; position: relative; }
+.info::before { content: ''; position: absolute; left: 0; top: 4px; bottom: 12px; width: 5px; border-radius: 3px; background: var(--accent); }
+.kicker { color: var(--accent); }
+
+.card { border-radius: 18px; transition: transform .15s cubic-bezier(.3,1.6,.5,1), background .1s; }
+.card.on::before { display: none; }
+.card.on { background: color-mix(in srgb, var(--accent) 16%, #1f2024); box-shadow: inset 0 0 0 2px var(--accent); }
+.card.on .card-label { color: var(--accent); }
+.card:active { transform: scale(.97); }
+.icon-btn { border-radius: 14px; }
+.icon-btn.primary { background: var(--accent); color: var(--ink); border-radius: 50%; box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent); }
+.icon-btn:active, .chip:active, .tap-big:active, .grade:active { transform: scale(.94); }
+.chip { border-radius: 999px; transition: transform .1s; }
+.chip.on { background: var(--accent); color: var(--ink); }
+.tag { border-radius: 8px; background: var(--accent); color: var(--ink); }
+.tag.ghost { background: #2a2c31; color: var(--text); }
+.seg { border-radius: 12px; padding: 3px; }
+.seg button { border-radius: 9px; }
+.seg button.on { background: var(--accent); color: var(--ink); }
+.tap-big { border-radius: 16px; }
+.tap-big:not(:disabled) { background: var(--accent); color: var(--ink); }
+.grade { border-radius: 14px; }
+.fam-item { border-radius: 10px; }
+.timebar, .level { border-radius: 4px; overflow: hidden; }
+.hand { border-radius: 7px; overflow: hidden; }
+.hand i { border-radius: 7px; }
+.toast { border-radius: 14px; background: var(--accent); color: var(--ink); }
+.check input { accent-color: var(--accent); }
+
+/* titik root di diagram mengikuti warna menu */
+.diagram .dot.root + .dotlabel { fill: var(--ink); }
+
+/* ketukan "melompat" */
+@keyframes pop { 0% { transform: scale(1.06); } 60% { transform: scale(.98); } 100% { transform: scale(1); } }
+.beat-card.flash, .step-card.flash { animation: pop .22s ease-out; }
+.beat-card.flash, .strum-card.flash, .pick-card.flash { background: var(--accent); }
+.beat-card.flash .n, .beat-card.flash .s, .strum-card.flash .cnt, .strum-card.flash .arrow,
+.pick-card.flash .cnt, .pick-card.flash .who { color: var(--ink) !important; }
+.pick-card.flash .strings6 .str { background: color-mix(in srgb, var(--ink) 45%, transparent); }
+.pick-card.flash .strings6 .str b, .pick-card.flash .strings6 .str b.bass { background: var(--ink); }
+.beat-card.first.flash { background: #fff; }
+.strum-card .arrow.u, .ear-card .sym, .card-head .roman { color: var(--accent); }
+.strings6 .str b.bass { background: var(--accent); }
+.str-card.locked { background: var(--accent); }
+.str-card.locked .s, .str-card.locked .n { color: var(--ink); }
+.fam-item.used { background: color-mix(in srgb, var(--accent) 22%, #1f2024); box-shadow: none; }
+.fam-item.used .r { color: var(--accent); }
+.pitch-viz span.b { background: var(--accent); color: var(--ink); }
+.pitch-viz { border-radius: 0 0 0 8px; }
+.pitch-viz span { border-radius: 6px; }

@@ -113,7 +113,9 @@ export class Ring {
     const from = this.pos, t0 = performance.now();
     const tick = (now) => {
       const t = ms ? Math.min(1, (now - t0) / ms) : 1;
-      const e = 1 - Math.pow(1 - t, 3);
+      // ease-out dengan sedikit memantul di akhir (lebih hidup)
+      const c1 = 1.5, u = t - 1;
+      const e = 1 + (c1 + 1) * u * u * u + c1 * u * u;
       this.pos = from + (target - from) * e;
       this.draw();
       if (t < 1) this.raf = requestAnimationFrame(tick);
