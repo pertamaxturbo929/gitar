@@ -276,3 +276,25 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .wide .title-q { font-size: 72px; }
 .narrow .title-q { font-size: 34px; }
 .narrow .strum-card { min-height: 46px; }
+
+/* petikan: 6 garis senar per langkah */
+.pick-card { flex-direction: row; align-items: center; gap: 12px; min-height: 64px; padding: 6px 14px; }
+.pick-card .cnt { font-size: 15px; color: var(--muted); font-weight: 600; width: 18px; text-align: left; }
+.pick-card.on-beat .cnt { color: var(--text); font-size: 20px; }
+.strings6 { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.strings6 .str { display: block; height: 2px; background: #4a4e56; position: relative; }
+.strings6 .str:nth-child(1) { height: 3px; } .strings6 .str:nth-child(2) { height: 2.6px; }
+.strings6 .str.muted { background: repeating-linear-gradient(90deg, #4a4e56 0 4px, transparent 4px 8px); }
+.strings6 .str b { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #e3e5ea; }
+.strings6 .str b.bass { background: var(--accent); }
+.pick-card .who { font-size: 13px; color: var(--muted); width: 34px; text-align: right; font-weight: 600; letter-spacing: .04em; }
+.pick-card.flash { background: #e3e5ea; }
+.pick-card.flash .strings6 .str { background: #9aa0aa; }
+.pick-card.flash .strings6 .str b { background: #15161a; }
+.pick-card.flash .strings6 .str b.bass { background: var(--accent); }
+.pick-card.flash .cnt, .pick-card.flash .who { color: #15161a; }
+.wide .pick-card { min-height: 92px; }
+.wide .strings6 { gap: 9px; }
+.pm-n { display: none; }
+.narrow .pm-n { display: grid; }
+.narrow .hand { display: none; }

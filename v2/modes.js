@@ -119,58 +119,109 @@ export function progressionMode(ui) {
   return () => { if (seq.running) { seq.stop(); keepAwake(false); } };
 }
 
-/* ======================= GENJRENGAN (STRUMMING) ======================= */
-// D = genjreng bawah, U = genjreng atas, - = tangan tetap bergerak tapi tidak kena senar.
-const PATTERNS = [
+/* ======================= IRAMA: GENJRENG & PETIK ======================= */
+// Genjreng: D = bawah, U = atas, - = tangan tetap bergerak tanpa kena senar.
+// spb = langkah per ketukan (2 = seperdelapan, 3 = triplet/6-8).
+const STRUMS = [
   { name: 'Dasar', pat: 'D-D-D-D-', note: 'Satu genjreng bawah tiap ketukan. Mulai dari sini.' },
   { name: 'Delapan', pat: 'DUDUDUDU', note: 'Bawah-atas terus. Latih tangan supaya stabil.' },
+  { name: 'Rock', pat: 'DDDDDDDD', note: 'Semua ke bawah, rapat dan bertenaga.' },
   { name: 'Pop', pat: 'D-DU-UDU', note: 'Pola paling sering di lagu pop & akustik.' },
   { name: 'Balada', pat: 'D-D-DUDU', note: 'Tenang di awal, ramai di akhir.' },
+  { name: 'Folk', pat: 'D-D-DU-U', note: 'Ringan dan mengayun, khas lagu folk.' },
+  { name: 'Calypso', pat: 'D-DU-UD-', note: 'Ceria, khas lagu pantai.' },
+  { name: 'Upbeat', pat: '-U-U-U-U', note: 'Hanya genjreng atas di sela ketukan. Khas ska.' },
   { name: 'Reggae', pat: '-D-D-D-D', note: 'Genjreng pendek di sela ketukan.' },
   { name: 'Waltz 3/4', pat: 'D-DUDU', beats: 3, note: 'Hitungan 3. Cocok lagu bertempo dansa.' },
+  { name: '6/8', pat: 'D-UD-U', beats: 2, spb: 3, note: 'Dua kelompok tiga. Lagu slow yang mengayun.' },
+  { name: 'Slow rock', pat: 'D-UD-UD-UD-U', beats: 4, spb: 3, note: 'Triplet 12/8, khas lagu slow rock & lawas.' },
 ];
+// Petik: tiap langkah dipisah spasi. B = senar bass (root), A = bass selingan,
+// 3/2/1 = senar 3, 2, 1. Tanda + = dipetik bersamaan.
+const PICKS = [
+  { name: 'Naik', pat: 'B 3 2 1 B 3 2 1', note: 'Arpeggio paling dasar: bass lalu naik ke senar tipis.' },
+  { name: 'Naik turun', pat: 'B 3 2 1 2 3 2 3', note: 'Naik lalu turun lagi, mengalir.' },
+  { name: 'Balada', pat: 'B 3 2 3 A 3 2 3', note: 'Bass berganti di tengah birama. Khas balada pop.' },
+  { name: 'Pinch', pat: 'B+1 3 2 3 B+1 3 2 3', note: 'Bass dan senar 1 dipetik bersamaan.' },
+  { name: 'Travis', pat: 'B 2 A 1 B 2 A 1', note: 'Jempol bergantian bass tiap ketukan, jari mengisi sela. Khas country/folk.' },
+  { name: 'Travis pinch', pat: 'B+1 2 A 3 B+2 1 A 3', note: 'Travis dengan petikan bersamaan. Tingkat lanjut.' },
+  { name: 'Blok', pat: 'B 3+2+1 A 3+2+1 B 3+2+1 A 3+2+1', note: 'Bass lalu tiga senar dipetik bareng (seperti piano).' },
+  { name: 'Waltz 3/4', pat: 'B 3 2 1 2 3', beats: 3, note: 'Arpeggio hitungan 3.' },
+  { name: '6/8', pat: 'B 3 2 1 2 3', beats: 2, spb: 3, note: 'Dua kelompok tiga, mengayun.' },
+  { name: 'Slow rock', pat: 'B 3 2 1 2 3 A 3 2 1 2 3', beats: 4, spb: 3, note: 'Triplet 12/8 dengan bass berganti.' },
+];
+const pickSteps = (p) => p.pat.split(' ').map((s) => s.split('+'));
 
-export function strumMode(ui) {
-  const { $, $$, wheel, el, icon, store } = ui;
-  let pIdx = store.get('sPat', 2);
+export function rhythmMode(ui) {
+  const { $, $$, wheel, icon, store } = ui;
+  let kind = store.get('rKind', 0); // 0 genjreng, 1 petik
+  let idx = [store.get('rS', 3), store.get('rP', 0)];
   let chordIdx = store.get('sChord', 0);
   const bpms = [];
   for (let b = 40; b <= 160; b += 5) bpms.push({ b });
+  const list = () => (kind === 0 ? STRUMS : PICKS);
+  const pat = () => list()[Math.min(idx[kind], list().length - 1)];
+  const stepCount = () => (kind === 0 ? pat().pat.length : pickSteps(pat()).length);
+  const voicing = () => { const [r, t] = EASY[chordIdx]; return firstVoicing(r, t); };
+
+  // Ubah simbol senar (B, A, 3, 2, 1) jadi indeks senar (0 = senar 6).
+  function stringIndex(sym, notes) {
+    const bass = notes.findIndex((m) => m != null);
+    let i = sym === 'B' ? bass : sym === 'A' ? (bass === 0 ? 2 : bass + 1) : 6 - Number(sym);
+    while (i < 5 && notes[i] == null) i++;
+    return i;
+  }
+
   const seq = createSequencer({
     onStep(i, time) {
-      const p = PATTERNS[pIdx];
-      if (i % 2 === 0) click(time, i === 0);
-      const s = p.pat[i];
-      if (s === 'D' || s === 'U') {
-        const [r, t] = EASY[chordIdx];
-        strum(firstVoicing(r, t).notes, { when: time + 0.004, up: s === 'U', gain: s === 'D' ? (i % 2 === 0 ? 0.42 : 0.34) : 0.26 });
+      const p = pat();
+      const spb = p.spb || 2;
+      if (i % spb === 0) click(time, i === 0);
+      const notes = voicing().notes;
+      if (kind === 0) {
+        const s = p.pat[i];
+        if (s === 'D' || s === 'U') strum(notes, { when: time + 0.004, up: s === 'U', gain: s === 'D' ? (i % spb === 0 ? 0.42 : 0.34) : 0.26 });
+      } else {
+        for (const sym of pickSteps(p)[i] || []) {
+          const si = stringIndex(sym, notes);
+          if (notes[si] != null) playNote(notes[si], time + 0.004, sym === 'B' || sym === 'A' ? 0.55 : 0.45);
+        }
       }
     },
     onVisual(i) {
-      $$('#cards .strum-card').forEach((c, j) => c.classList.toggle('flash', j === i));
+      $$('#cards .step-card').forEach((c, j) => c.classList.toggle('flash', j === i));
+      const on = $('#cards .step-card.flash');
+      if (on) on.scrollIntoView({ block: 'nearest' });
       const hand = $('#sHand'); if (hand && i >= 0) hand.classList.toggle('down', i % 2 === 0);
     },
   });
-  seq.stepsPerBeat = 2;
   seq.bpm = store.get('sBpm', 70);
 
-  wheel.setRings([
-    ui.menuRing(),
-    new Ring({ id: 'pat', items: PATTERNS.map((p) => ({ label: p.name.toUpperCase() })), loop: false, weight: 1.15,
-      spacing: ui.geo.narrow ? 46 : 56, index: pIdx, render: ui.textRender(ui.geo.narrow ? 16 : 19),
-      onChange(i) { pIdx = i; store.set('sPat', i); seq.steps = PATTERNS[i].pat.length; render(); } }),
-    new Ring({ id: 'sbpm', items: bpms, loop: false, spacing: 30, sector: false, upright: false,
-      index: Math.round((seq.bpm - 40) / 5),
-      render(g, item) {
-        const major = item.b % 20 === 0;
-        ui.el('line', { class: 'tick' + (major ? ' major' : ''), x1: 4, x2: major ? 24 : 14, y1: 0, y2: 0 }, g);
-        ui.el('text', { class: 'tick-label', x: -16, y: 0, style: `font-size:${major ? 15 : 12}px` }, g).textContent = item.b;
-      },
-      onChange(i, item) { seq.bpm = item.b; store.set('sBpm', item.b); const e = $('#sBpm'); if (e) e.textContent = item.b; } }),
-  ]);
+  function sync() { seq.stepsPerBeat = pat().spb || 2; seq.steps = stepCount(); }
+
+  function rings() {
+    const narrow = ui.geo.narrow;
+    wheel.setRings([
+      ui.menuRing(),
+      new Ring({ id: 'kind', items: [{ label: 'GENJRENG' }, { label: 'PETIK' }], loop: false, weight: 0.9,
+        spacing: ui.geo.narrow ? 52 : 60, index: kind, render: ui.textRender(ui.geo.narrow ? 13 : 17),
+        onSettle(i) { if (i !== kind) { kind = i; store.set('rKind', i); sync(); rings(); render(); } } }),
+      new Ring({ id: 'pat', items: list().map((p) => ({ label: p.name.toUpperCase() })), loop: false, weight: 1.15,
+        spacing: ui.geo.narrow ? 42 : 50, index: Math.min(idx[kind], list().length - 1), render: ui.textRender(ui.geo.narrow ? 14 : 17),
+        onChange(i) { idx[kind] = i; store.set(kind === 0 ? 'rS' : 'rP', i); sync(); render(); } }),
+      !narrow && new Ring({ id: 'sbpm', items: bpms, loop: false, spacing: 30, sector: false, upright: false, weight: 0.9,
+        index: Math.round((seq.bpm - 40) / 5),
+        render(g, item) {
+          const major = item.b % 20 === 0;
+          ui.el('line', { class: 'tick' + (major ? ' major' : ''), x1: 4, x2: major ? 22 : 13, y1: 0, y2: 0 }, g);
+          ui.el('text', { class: 'tick-label', x: -14, y: 0, style: `font-size:${major ? 15 : 12}px` }, g).textContent = item.b;
+        },
+        onChange(i, item) { seq.bpm = item.b; store.set('sBpm', item.b); const e = $('#sBpm'); if (e) e.textContent = item.b; } }),
+    ].filter(Boolean));
+  }
 
   $('#info').innerHTML = `
-    <div class="kicker">Genjrengan</div>
+    <div class="kicker" id="sKick"></div>
     <div class="title" id="sName"></div>
     <div class="sub"><span id="sBpm"></span> BPM · <span id="sBeats"></span></div>
     <div class="small" id="sNote" style="margin-top:6px"></div>
@@ -178,24 +229,54 @@ export function strumMode(ui) {
     <div class="row">
       <button class="icon-btn primary big" id="sPlay" aria-label="Mainkan">${icon('play')}</button>
       <div class="hand" id="sHand" aria-hidden="true"><i></i></div>
+      <button class="icon-btn pm-n" id="sSlow" aria-label="Lebih pelan">−</button>
+      <button class="icon-btn pm-n" id="sFast" aria-label="Lebih cepat">+</button>
     </div>
-    <div class="small">↓ genjreng ke bawah · ↑ ke atas · titik = tangan tetap bergerak tanpa kena senar.</div>`;
+    <div class="small" id="sLegend"></div>`;
+  const bump = (d) => { seq.bpm = Math.max(40, Math.min(160, seq.bpm + d)); store.set('sBpm', seq.bpm); $('#sBpm').textContent = seq.bpm; };
+  $('#sSlow').onclick = () => bump(-5);
+  $('#sFast').onclick = () => bump(5);
   $('#sChords').innerHTML = EASY.map(([r, t], i) => `<button class="chip" data-i="${i}">${chordSymbol(r, t)}</button>`).join('');
 
+  function countLabel(i, spb) {
+    if (i % spb === 0) return String(i / spb + 1);
+    return spb === 3 ? (i % 3 === 1 ? '&' : 'a') : '&';
+  }
   function render() {
-    const p = PATTERNS[pIdx];
+    const p = pat();
+    const spb = p.spb || 2;
     const beats = p.beats || 4;
+    $('#sKick').textContent = kind === 0 ? 'Irama · genjreng' : 'Irama · petik';
     $('#sName').textContent = p.name;
     $('#sBpm').textContent = seq.bpm;
-    $('#sBeats').textContent = `${beats} ketukan`;
+    $('#sBeats').textContent = spb === 3 ? `${beats * 3}/8` : `${beats}/4`;
     $('#sNote').textContent = p.note;
+    $('#sHand').hidden = kind !== 0;
+    $('#sLegend').textContent = kind === 0
+      ? '↓ genjreng ke bawah · ↑ ke atas · titik = tangan tetap bergerak tanpa kena senar.'
+      : 'Garis = 6 senar (atas = senar 6 paling tebal). Titik = senar yang dipetik, biru = bass. J jempol · T telunjuk · Te tengah · M manis.';
     $$('#sChords .chip').forEach((c) => c.classList.toggle('on', Number(c.dataset.i) === chordIdx));
-    const count = (i) => (i % 2 === 0 ? String(i / 2 + 1) : '&');
-    $('#cards').innerHTML = [...p.pat].map((s, i) => `
-      <div class="card strum-card${i % 2 === 0 ? ' on-beat' : ''}">
-        <span class="cnt">${count(i)}</span>
-        <span class="arrow ${s === 'D' ? 'd' : s === 'U' ? 'u' : 'x'}">${s === 'D' ? '↓' : s === 'U' ? '↑' : '·'}</span>
-      </div>`).join('');
+    const notes = voicing().notes;
+    if (kind === 0) {
+      $('#cards').innerHTML = [...p.pat].map((s, i) => `
+        <div class="card step-card strum-card${i % spb === 0 ? ' on-beat' : ''}">
+          <span class="cnt">${countLabel(i, spb)}</span>
+          <span class="arrow ${s === 'D' ? 'd' : s === 'U' ? 'u' : 'x'}">${s === 'D' ? '↓' : s === 'U' ? '↑' : '·'}</span>
+        </div>`).join('');
+    } else {
+      $('#cards').innerHTML = pickSteps(p).map((syms, i) => {
+        const hit = new Map(syms.map((sym) => [stringIndex(sym, notes), sym]));
+        const lines = [0, 1, 2, 3, 4, 5].map((s) => {
+          const sym = hit.get(s);
+          const muted = notes[s] == null;
+          return `<i class="str${muted ? ' muted' : ''}">${sym ? `<b class="${sym === 'B' || sym === 'A' ? 'bass' : ''}"></b>` : ''}</i>`;
+        }).join('');
+        return `<div class="card step-card pick-card${i % spb === 0 ? ' on-beat' : ''}">
+          <span class="cnt">${countLabel(i, spb)}</span><span class="strings6">${lines}</span>
+          <span class="who">${syms.map((s) => (s === 'B' || s === 'A' ? 'J' : s === '3' ? 'T' : s === '2' ? 'Te' : 'M')).join('+')}</span>
+        </div>`;
+      }).join('');
+    }
   }
   $('#sChords').onclick = (e) => {
     const c = e.target.closest('.chip'); if (!c) return;
@@ -203,9 +284,9 @@ export function strumMode(ui) {
   };
   $('#sPlay').onclick = async () => {
     if (seq.running) { seq.stop(); keepAwake(false); $('#sPlay').innerHTML = icon('play'); }
-    else { seq.steps = PATTERNS[pIdx].pat.length; await seq.start(); keepAwake(true); $('#sPlay').innerHTML = icon('stop'); }
+    else { sync(); await seq.start(); keepAwake(true); $('#sPlay').innerHTML = icon('stop'); }
   };
-  render();
+  rings(); sync(); render();
   return () => { if (seq.running) { seq.stop(); keepAwake(false); } };
 }
 

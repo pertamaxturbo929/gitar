@@ -5,7 +5,7 @@ import { createTuner } from '../js/tuner.js';
 import { createMetronome } from '../js/metronome.js';
 import { unlockAudio, strum, referenceTone, keepAwake } from '../js/audio.js';
 import { Wheel, Ring, el } from './wheel.js';
-import { progressionMode, strumMode, drillMode, earMode } from './modes.js';
+import { progressionMode, rhythmMode, drillMode, earMode } from './modes.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -59,7 +59,7 @@ const MENU = [
   { id: 'metronome', label: 'Metronom', icon: 'metro' },
   { id: 'chords', label: 'Chord', icon: 'chord' },
   { id: 'prog', label: 'Progresi', icon: 'prog' },
-  { id: 'strum', label: 'Genjrengan', icon: 'strum' },
+  { id: 'strum', label: 'Irama', icon: 'strum' },
   { id: 'drill', label: 'Latihan', icon: 'drill' },
   { id: 'ear', label: 'Telinga', icon: 'ear' },
 ];
@@ -100,7 +100,7 @@ function setMode(mode) {
   cleanup(); cleanup = () => {};
   state.mode = mode; save();
   const modes = { chords: chordMode, tuner: tunerMode, metronome: metroMode };
-  const extra = { prog: progressionMode, strum: strumMode, drill: drillMode, ear: earMode };
+  const extra = { prog: progressionMode, strum: rhythmMode, drill: drillMode, ear: earMode };
   if (extra[mode]) { cleanup = extra[mode](ui) || (() => {}); return; }
   (modes[mode] || soonMode)(mode);
 }
