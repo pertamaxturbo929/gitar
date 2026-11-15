@@ -210,3 +210,4 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 /* indikator suara masuk ke mic */
 .level { height: 4px; background: #2a2c31; margin-top: 4px; max-width: 220px; }
 .level i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .08s linear; }
+.diag { font-size: 11px; color: var(--dim); margin-top: 6px; letter-spacing: .02em; font-family: ui-monospace, Menlo, monospace; }

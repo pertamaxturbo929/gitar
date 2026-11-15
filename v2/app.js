@@ -213,6 +213,7 @@ function tunerMode() {
     <div class="sub" id="tCents">&nbsp;</div>
     <div class="hint" id="tHint">Tekan mic, lalu petik satu senar.</div>
     <div class="level"><i id="tLevel"></i></div>
+    <div class="diag" id="tDiag">v3 · belum mulai</div>
     <div class="row">
       <button class="icon-btn primary big" id="tBtn" aria-label="Mulai tuner">${icon('mic')}</button>
       <label class="check"><input type="checkbox" id="tAuto" checked> Otomatis</label>
@@ -239,8 +240,10 @@ function tunerMode() {
   $('#tAuto').onchange = (e) => { locked = e.target.checked ? null : strings[stringRing.selected].midi; markStrings(); };
 
   const nearest = (midi) => strings.reduce((a, b) => (Math.abs(b.midi - midi) < Math.abs(a.midi - midi) ? b : a));
-  const tuner = createTuner((r, level) => {
+  const tuner = createTuner((r, level, info) => {
     const box = $('#tBox'); if (!box) return;
+    const dg = $('#tDiag');
+    if (dg && info) dg.textContent = `v3 · ${info.step} · audio ${info.ctxState} · ${info.sampleRate} Hz · mic ${info.track} · level ${(level * 1000).toFixed(1)}`;
     const lv = $('#tLevel'); if (lv) lv.style.width = Math.min(100, Math.sqrt(level || 0) * 400).toFixed(0) + '%';
     const now = performance.now();
     if (!r) {
@@ -276,7 +279,8 @@ function tunerMode() {
       $('#tBtn').innerHTML = icon('stop');
       $('#tHint').textContent = 'Mendengarkan… petik satu senar.';
     } catch (err) {
-      const m = err && err.message === 'nomic' ? 'Browser ini tidak bisa akses mikrofon.' : 'Izin mikrofon ditolak. Cek pengaturan browser.';
+      const m = err && err.message === 'nomic' ? 'Browser ini tidak bisa akses mikrofon.' : 'Mic gagal dibuka. Cek izin mikrofon untuk Safari.';
+      const dg = $('#tDiag'); if (dg) dg.textContent = `v3 · ${tuner.info.step} · error: ${tuner.info.error || (err && err.message)}`;
       $('#tHint').textContent = m; toast(m);
     }
   };
