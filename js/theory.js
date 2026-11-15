@@ -66,3 +66,54 @@ export const INSTRUMENTS = {
     frets: 15,
   },
 };
+
+// ---------- Tangga nada & family chord ----------
+export const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+export const DIATONIC = {
+  major: ['maj', 'min', 'min', 'maj', 'maj', 'min', 'dim'],
+  minor: ['min', 'dim', 'maj', 'min', 'min', 'maj', 'maj'],
+};
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+
+export function romanFor(degree, type) {
+  const r = ROMAN[degree];
+  if (type === 'maj') return r;
+  if (type === 'dim') return r.toLowerCase() + '°';
+  if (type === '7') return r + '7';
+  return r.toLowerCase();
+}
+
+// Chord-chord dalam satu kunci (family chord).
+export function diatonicChords(keyPc, mode = 'major') {
+  return SCALES[mode].map((iv, d) => {
+    const type = DIATONIC[mode][d];
+    return { degree: d, pc: pc(keyPc + iv), type, roman: romanFor(d, type) };
+  });
+}
+
+// Progresi: daftar langkah {d: derajat 0-6, t: tipe paksa (opsional)}.
+export const PROGRESSIONS = {
+  major: [
+    { name: 'I–IV–V–I', note: 'Paling dasar. Hampir semua lagu lama.', steps: [0, 3, 4, 0] },
+    { name: 'I–V–vi–IV', note: 'Progresi pop paling populer.', steps: [0, 4, 5, 3] },
+    { name: 'vi–IV–I–V', note: 'Versi sedih dari progresi pop.', steps: [5, 3, 0, 4] },
+    { name: 'I–vi–IV–V', note: 'Khas lagu tahun 50-an & balada.', steps: [0, 5, 3, 4] },
+    { name: 'ii–V–I', note: 'Dasar jazz.', steps: [1, 4, 0] },
+    { name: 'Blues 12', note: '12 birama blues, semua chord 7.', steps: [0, 0, 0, 0, 3, 3, 0, 0, 4, 3, 0, 4].map((d) => ({ d, t: '7' })) },
+  ],
+  minor: [
+    { name: 'i–VI–III–VII', note: 'Progresi minor yang epik.', steps: [0, 5, 2, 6] },
+    { name: 'i–iv–v–i', note: 'Minor paling dasar.', steps: [0, 3, 4, 0] },
+    { name: 'i–iv–V–i', note: 'Pakai V mayor: lebih kuat kembali ke i.', steps: [0, 3, { d: 4, t: 'maj' }, 0] },
+    { name: 'i–VII–VI–VII', note: 'Sering di rock & pop minor.', steps: [0, 6, 5, 6] },
+  ],
+};
+
+export function progressionChords(keyPc, mode, prog) {
+  const fam = diatonicChords(keyPc, mode);
+  return prog.steps.map((s) => {
+    const d = typeof s === 'number' ? s : s.d;
+    const type = (typeof s === 'object' && s.t) || fam[d].type;
+    return { degree: d, pc: fam[d].pc, type, roman: romanFor(d, type) };
+  });
+}

@@ -93,15 +93,24 @@ export function pluck(midi, when = 0, gain = 0.5) {
 }
 
 // notes: array MIDI (null = senar tidak dibunyikan), dari senar bawah.
-export function strum(notes, { gap = 0.035, arpeggio = false } = {}) {
+// up = genjreng ke atas (senar tipis dulu). when = waktu audio (untuk pola terjadwal).
+export function strum(notes, { gap = 0.035, arpeggio = false, up = false, when = null, gain = null } = {}) {
   const c = getCtx();
-  const step = arpeggio ? 0.32 : gap;
-  let t = c.currentTime + 0.03;
-  for (const m of notes) {
-    if (m == null) continue;
-    pluck(m, t, arpeggio ? 0.6 : 0.4);
+  const step = arpeggio ? 0.32 : up ? gap * 0.7 : gap;
+  let t = when == null ? c.currentTime + 0.03 : when;
+  let list = notes.filter((m) => m != null);
+  if (up) list = list.reverse().slice(0, 4); // genjreng atas biasanya hanya kena senar tipis
+  const g = gain != null ? gain : arpeggio ? 0.6 : up ? 0.28 : 0.4;
+  for (const m of list) {
+    pluck(m, t, g);
     t += step;
   }
+}
+
+// Nada tunggal (untuk latihan telinga).
+export function playNote(midi, when = null, gain = 0.6) {
+  const c = getCtx();
+  pluck(midi, when == null ? c.currentTime + 0.03 : when, gain);
 }
 
 // Nada referensi stabil (untuk tuner).

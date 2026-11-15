@@ -33,6 +33,7 @@ export class Ring {
       onSettle: () => {},  // dipanggil saat cincin berhenti
       onTap: null,         // tap item yang sudah terpilih
       sector: true,
+      weight: 1,           // lebar relatif cincin
       upright: true,       // label selalu tegak (false = ikut berputar, untuk skala)
     }, opts);
     this.pos = this.index;
@@ -135,8 +136,9 @@ export class Wheel {
   }
 
   // cx, cy = pusat roda (boleh di luar layar). bands = [r0, r1, r2, ...] batas cincin.
-  layout({ cx, cy, bands, height }) {
-    this.cx = cx; this.cy = cy; this.bands = bands; this.height = height;
+  // k = jari-jari hub, V = lebar roda yang terlihat. Batas cincin dihitung dari bobot tiap cincin.
+  layout({ cx, cy, k, V, height }) {
+    this.cx = cx; this.cy = cy; this.k = k; this.V = V; this.height = height; this.bands = true;
     this.root.setAttribute('transform', `translate(${cx} ${cy})`);
     this.build();
   }
@@ -158,7 +160,11 @@ export class Wheel {
     this.ringLayer.innerHTML = '';
     this.decor.innerHTML = '';
     this.axis.innerHTML = '';
-    const b = this.bands;
+    const weights = this.rings.map((r) => r.weight);
+    const total = weights.reduce((a, w) => a + w, 0) || 1;
+    const b = [this.k];
+    weights.forEach((w) => b.push(b[b.length - 1] + (this.V * w) / total));
+    this.radii = b;
     // Lubang tengah (hub).
     el('circle', { class: 'hub', r: b[0] }, this.decor);
     el('circle', { class: 'hub-ring', r: b[0] - 10 }, this.decor);

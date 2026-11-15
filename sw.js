@@ -1,6 +1,6 @@
 // Service worker: simpan semua file supaya aplikasi tetap jalan tanpa internet.
 // Naikkan VERSION setiap ada perubahan file.
-const VERSION = 'gitar-v3';
+const VERSION = 'gitar-v4';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/theory.js', 'js/chords.js', 'js/diagram.js',

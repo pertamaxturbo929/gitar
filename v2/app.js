@@ -5,6 +5,7 @@ import { createTuner } from '../js/tuner.js';
 import { createMetronome } from '../js/metronome.js';
 import { unlockAudio, strum, referenceTone, keepAwake } from '../js/audio.js';
 import { Wheel, Ring, el } from './wheel.js';
+import { progressionMode, strumMode, drillMode, earMode } from './modes.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -27,6 +28,7 @@ const ICONS = {
   arp: '<path d="M5 18V8l4-2v10M13 18V6l4-2v10"/><circle class="fill" cx="5" cy="18" r="2"/><circle class="fill" cx="13" cy="18" r="2"/>',
   stop: '<rect class="fill" x="6" y="6" width="12" height="12"/>',
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/>',
+  prog: '<path d="M4 18h4v-4h4v-4h4V6h4"/><circle class="fill" cx="4" cy="18" r="1.6"/><circle class="fill" cx="20" cy="6" r="1.6"/>',
   tap: '<path d="M9 11V5a1.5 1.5 0 0 1 3 0v6M12 10a1.5 1.5 0 0 1 3 0v1M15 11a1.5 1.5 0 0 1 3 0v4a6 6 0 0 1-6 6h-1a5 5 0 0 1-4-2l-3-4a1.5 1.5 0 0 1 2.3-2L9 15"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24">${ICONS[name]}</svg>`;
@@ -40,8 +42,7 @@ function computeLayout() {
   const wide = W >= 820 && W > H;
   const V = wide ? Math.min(W * 0.36, H * 0.56) : Math.max(170, Math.min(W * 0.5, 400));
   const k = wide ? H * 0.58 : Math.max(240, Math.min(H * 0.36, 520));
-  const bands = wide ? [k, k + V * 0.28, k + V * 0.63, k + V] : [k, k + V * 0.32, k + V * 0.66, k + V];
-  return { W, H, wide, narrow: W < 430, V, cx: -k, cy: H / 2, bands };
+  return { W, H, wide, narrow: W < 430, V, k, cx: -k, cy: H / 2 };
 }
 
 function applyLayout() {
@@ -49,7 +50,7 @@ function applyLayout() {
   document.body.classList.toggle('wide', geo.wide);
   document.body.classList.toggle('narrow', geo.narrow);
   $('#side').style.left = `${geo.V + (geo.wide ? 28 : 12)}px`;
-  wheel.layout({ cx: geo.cx, cy: geo.cy, bands: geo.bands, height: geo.H });
+  wheel.layout({ cx: geo.cx, cy: geo.cy, k: geo.k, V: geo.V, height: geo.H });
 }
 
 /* ---------- Menu utama (cincin dalam) ---------- */
@@ -57,13 +58,14 @@ const MENU = [
   { id: 'tuner', label: 'Tuner', icon: 'tuner' },
   { id: 'metronome', label: 'Metronom', icon: 'metro' },
   { id: 'chords', label: 'Chord', icon: 'chord' },
-  { id: 'strum', label: 'Genjrengan', icon: 'strum', disabled: true },
-  { id: 'drill', label: 'Latihan', icon: 'drill', disabled: true },
-  { id: 'ear', label: 'Telinga', icon: 'ear', disabled: true },
+  { id: 'prog', label: 'Progresi', icon: 'prog' },
+  { id: 'strum', label: 'Genjrengan', icon: 'strum' },
+  { id: 'drill', label: 'Latihan', icon: 'drill' },
+  { id: 'ear', label: 'Telinga', icon: 'ear' },
 ];
 
 const menuRing = () => new Ring({
-  id: 'menu', items: MENU, loop: true, spacing: 62,
+  id: 'menu', items: MENU, loop: true, spacing: 62, weight: 0.85,
   index: Math.max(0, MENU.findIndex((m) => m.id === state.mode)),
   render(g, item) {
     const s = el('g', { class: 'icon', transform: 'translate(-13 -13) scale(1.08)' }, g);
@@ -75,6 +77,12 @@ const menuRing = () => new Ring({
 const textRender = (size) => (g, item) => {
   const t = el('text', { class: 'ring-label', 'font-size': size }, g);
   t.textContent = item.label;
+};
+
+/* ---------- Alat bersama untuk menu di modes.js ---------- */
+const ui = {
+  $, $$, el, icon, store, toast, wheel, menuRing, textRender,
+  get geo() { return geo; },
 };
 
 /* ---------- State ---------- */
@@ -92,6 +100,8 @@ function setMode(mode) {
   cleanup(); cleanup = () => {};
   state.mode = mode; save();
   const modes = { chords: chordMode, tuner: tunerMode, metronome: metroMode };
+  const extra = { prog: progressionMode, strum: strumMode, drill: drillMode, ear: earMode };
+  if (extra[mode]) { cleanup = extra[mode](ui) || (() => {}); return; }
   (modes[mode] || soonMode)(mode);
 }
 
@@ -303,8 +313,9 @@ function metroMode() {
     render(g, item) {
       const major = item.b % 10 === 0;
       const len = major ? 16 : item.b % 5 === 0 ? 10 : 5;
-      el('line', { class: 'tick' + (major ? ' major' : ''), x1: -len - 8, x2: len - 8, y1: 0, y2: 0 }, g);
-      if (major) el('text', { class: 'tick-label', x: -34, y: 0, style: 'font-size:14px' }, g).textContent = item.b;
+      // label di sisi dalam, garis di sisi luar: keduanya simetris di tengah cincin
+      el('line', { class: 'tick' + (major ? ' major' : ''), x1: 4, x2: 4 + len * 1.2, y1: 0, y2: 0 }, g);
+      if (major) el('text', { class: 'tick-label', x: -16, y: 0, style: 'font-size:14px' }, g).textContent = item.b;
     },
     onChange(i, item) { metro.bpm = item.b; renderBpm(); },
   });
