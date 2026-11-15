@@ -212,6 +212,7 @@ function tunerMode() {
     <div class="tuner idle" id="tBox"><div class="note-big" id="tNote">–</div></div>
     <div class="sub" id="tCents">&nbsp;</div>
     <div class="hint" id="tHint">Tekan mic, lalu petik satu senar.</div>
+    <div class="level"><i id="tLevel"></i></div>
     <div class="row">
       <button class="icon-btn primary big" id="tBtn" aria-label="Mulai tuner">${icon('mic')}</button>
       <label class="check"><input type="checkbox" id="tAuto" checked> Otomatis</label>
@@ -238,8 +239,9 @@ function tunerMode() {
   $('#tAuto').onchange = (e) => { locked = e.target.checked ? null : strings[stringRing.selected].midi; markStrings(); };
 
   const nearest = (midi) => strings.reduce((a, b) => (Math.abs(b.midi - midi) < Math.abs(a.midi - midi) ? b : a));
-  const tuner = createTuner((r) => {
+  const tuner = createTuner((r, level) => {
     const box = $('#tBox'); if (!box) return;
+    const lv = $('#tLevel'); if (lv) lv.style.width = Math.min(100, Math.sqrt(level || 0) * 400).toFixed(0) + '%';
     const now = performance.now();
     if (!r) {
       if (now - lastSignal > 1200) { box.className = 'tuner idle'; $('#tHint').textContent = 'Petik satu senar…'; }
